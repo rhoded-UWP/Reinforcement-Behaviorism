@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reinforcement Practice Lab</title>
+<meta name="description" content="TCHG 4030 practice: identify reinforcement types, schedules, timing and satiation, and differential reinforcement in realistic classroom scenarios.">
+<style>
+  :root {
+    color-scheme: light;
+    --sand: #F5F0E6;
+    --card: #FBF8F1;
+    --navy: #1F4E5F;
+    --sea: #6BB5A6;
+    --sea-light: #DDEFEA;
+    --sea-dark: #2B6F63;
+    --gold: #F2C57C;
+    --gold-light: #FBEACB;
+    --text: #23323A;
+    --muted: #4F5E66;
+    --line: #E3DDD0;
+    --wrong: #A8261B;
+    --wrong-bg: #FBE7E4;
+    --right: #1D6536;
+    --right-bg: #E2F2E7;
+    --radius: 14px;
+    --serif: Cambria, "Iowan Old Style", Georgia, serif;
+    --sans: Calibri, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--sand); color: var(--text);
+    font-family: var(--sans); font-size: 18px; line-height: 1.5;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1, h2, h3 { font-family: var(--serif); color: var(--navy); line-height: 1.2; margin: 0; }
+  h1 { font-size: clamp(28px, 5vw, 40px); }
+  h2 { font-size: clamp(22px, 3.6vw, 30px); }
+
+  /* Header */
+  .hero {
+    background: var(--navy); color: var(--sand); border-radius: var(--radius);
+    padding: 28px 28px 24px; position: relative; overflow: hidden;
+  }
+  .hero h1 { color: var(--sand); }
+  .hero .kicker { color: var(--gold); font-weight: 700; letter-spacing: .06em; font-size: 14px; text-transform: uppercase; margin-bottom: 8px; }
+  .hero p { margin: 12px 0 0; color: var(--sea-light); max-width: 60ch; }
+  .hero .motif { display: flex; gap: 14px; margin-top: 36px; align-items: flex-end; }
+  .hero .motif span { width: 12px; height: 12px; border-radius: 50%; background: var(--sea); position: relative; }
+  .hero .motif span.s::after { content: "\2605"; position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); color: var(--gold); font-size: 20px; line-height: 1; }
+
+  .how { background: var(--card); border-radius: var(--radius); padding: 18px 22px; margin-top: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .how h2 { font-size: 20px; margin-bottom: 6px; }
+  .how ul { margin: 6px 0 0; padding-left: 22px; }
+  .how li { margin: 4px 0; }
+
+  /* Progress chips */
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+  .chip {
+    display: block; text-decoration: none; background: var(--card); border-radius: 12px; padding: 10px 12px;
+    border: 2px solid transparent; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .chip .n { font-family: var(--serif); font-weight: 700; color: var(--navy); font-size: 15px; }
+  .chip .t { font-size: 14px; color: var(--muted); display: block; line-height: 1.3; }
+  .chip .st { font-size: 13px; font-weight: 700; display: block; margin-top: 4px; color: var(--sea-dark); }
+  .chip.locked .st { color: var(--muted); }
+  .chip.done { border-color: var(--sea-dark); background: var(--sea-light); }
+  .chip:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  @media (max-width: 640px) { .chips { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Activity section */
+  .activity { margin-top: 40px; scroll-margin-top: 12px; }
+  .act-head { display: flex; gap: 14px; align-items: center; }
+  .badge {
+    flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; background: var(--gold); color: var(--navy);
+    font-family: var(--serif); font-weight: 700; font-size: 22px; display: grid; place-items: center;
+  }
+  .act-head .sub { color: var(--sea-dark); font-style: italic; margin-top: 2px; }
+  .ref { margin-top: 16px; background: var(--sea-light); border-radius: var(--radius); padding: 4px 18px; }
+  .ref summary { cursor: pointer; font-weight: 700; color: var(--navy); padding: 10px 0; }
+  .ref summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+  .ref dl { margin: 0 0 14px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; }
+  .ref dt { font-weight: 700; color: var(--navy); }
+  .ref dd { margin: 0; }
+  @media (max-width: 640px) { .ref dl { grid-template-columns: 1fr; } .ref dd { margin-bottom: 8px; } }
+
+  .progress { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+  .bar { flex: 1; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--sea-dark); border-radius: 999px; transition: width .35s ease; }
+  .progress .count { font-weight: 700; color: var(--navy); min-width: 110px; text-align: right; font-size: 16px; }
+
+  .lock {
+    margin-top: 16px; background: var(--card); border: 2px dashed var(--sea); border-radius: var(--radius);
+    padding: 16px 18px; color: var(--navy); font-weight: 700; display: flex; gap: 10px; align-items: center;
+  }
+  .activity.is-locked .items { opacity: .35; filter: grayscale(.4); pointer-events: none; user-select: none; }
+  .activity:not(.is-locked) .lock { display: none; }
+
+  .items { margin-top: 16px; display: grid; gap: 16px; }
+  .q {
+    background: var(--card); border-radius: var(--radius); padding: 18px 20px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border: 2px solid transparent; transition: border-color .2s;
+  }
+  .q.solved { border-color: var(--sea); }
+  .q .meta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .q .num { font-family: var(--serif); font-weight: 700; color: var(--navy); }
+  .q .grade { font-size: 13px; font-weight: 700; color: var(--navy); background: var(--gold-light); padding: 2px 10px; border-radius: 999px; }
+  .q .name-tag { font-size: 13px; color: var(--muted); }
+  .q .scenario { margin: 0; }
+  .q .ask { margin: 10px 0 0; font-weight: 700; color: var(--navy); font-size: 16px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .opt {
+    font: inherit; font-size: 16px; font-weight: 700; color: var(--navy); background: #fff; cursor: pointer;
+    border: 2px solid var(--sea); border-radius: 999px; padding: 8px 16px; min-height: 44px; transition: background .15s, border-color .15s;
+  }
+  .opt:hover { background: var(--sea-light); }
+  .opt:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .opt.wrong { border-color: var(--wrong); color: var(--wrong); background: var(--wrong-bg); }
+  .opt.wrong::before { content: "\2717  "; }
+  .opt.right { border-color: var(--right); color: #fff; background: var(--right); cursor: default; }
+  .opt.right::before { content: "\2713  "; }
+  .q.solved .opt:not(.right) { opacity: .45; cursor: default; }
+  .q.solved .opt:not(.right):hover { background: #fff; }
+  .q.solved .opt.wrong:hover { background: var(--wrong-bg); }
+
+  .fb { margin-top: 12px; border-radius: 10px; padding: 0; font-size: 16px; }
+  .fb:empty { display: none; }
+  .fb.bad { background: var(--wrong-bg); color: var(--wrong); padding: 10px 14px; border: 1px solid #EFC3BD; }
+  .fb.good { background: var(--right-bg); color: var(--right); padding: 10px 14px; border: 1px solid #BFE0C9; }
+  .fb strong { display: block; margin-bottom: 2px; }
+
+  .done-banner {
+    margin-top: 16px; background: var(--navy); color: var(--sand); border-radius: var(--radius); padding: 16px 20px;
+    display: none; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .activity.is-done .done-banner { display: flex; }
+  .done-banner b { color: var(--gold); font-family: var(--serif); font-size: 20px; }
+  .done-banner .stat { color: var(--sea-light); font-size: 15px; display: block; }
+  .btn {
+    font: inherit; font-weight: 700; font-size: 16px; border-radius: 999px; padding: 10px 18px; cursor: pointer; min-height: 44px;
+    background: var(--gold); color: var(--navy); border: 0; text-decoration: none; display: inline-block;
+  }
+  .btn:focus-visible { outline: 3px solid var(--sea-light); outline-offset: 2px; }
+  .btn.ghost { background: transparent; color: var(--navy); border: 2px solid var(--navy); }
+
+  .finale {
+    margin-top: 44px; background: var(--card); border-radius: var(--radius); padding: 24px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .finale .stars { color: var(--gold); font-size: 28px; letter-spacing: 6px; }
+  .finale.all-done { background: var(--sea-light); border: 2px solid var(--sea-dark); }
+  .finale p { margin: 8px auto 0; max-width: 56ch; }
+  .reset-row { margin-top: 16px; display: flex; justify-content: center; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .bar > i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">TCHG 4030 &middot; Positive Classroom Environment</div>
+    <h1>Reinforcement Practice Lab</h1>
+    <p>Read each classroom scenario and choose the best answer. Every scenario comes from Pre-K through Grade 8 classrooms.</p>
+    <div class="motif" aria-hidden="true">
+      <span class="s"></span><span></span><span></span><span class="s"></span><span></span><span class="s"></span><span class="s"></span><span></span><span></span><span class="s"></span>
+    </div>
+  </header>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How this works</h2>
+    <ul>
+      <li>Pick the answer that best fits what is happening in the scenario.</li>
+      <li>If you miss one, you will see a tip in red. Read it and try again. Retries are unlimited.</li>
+      <li>You must get all 8 scenarios correct to finish an activity. Finishing one unlocks the next.</li>
+      <li>Open the quick reference in each activity if you want a reminder of the terms.</li>
+    </ul>
+  </section>
+
+  <nav class="chips" id="chips" aria-label="Activity progress"></nav>
+
+  <main id="activities"></main>
+
+  <section class="finale" id="finale" aria-live="polite">
+    <div class="stars" aria-hidden="true">&#9733; &#9733; &#9733; &#9733;</div>
+    <h2 id="finale-h">Finish all four activities</h2>
+    <p id="finale-p">Your progress is shown at the top of the page.</p>
+    <div class="reset-row"><button class="btn ghost" id="reset" type="button">Start over</button></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ------------------------------------------------------------------
+  // DATA
+  // Each item: id, grade, text, ask (optional), answer, why (shown when
+  // correct), tips (optional per-wrong-choice tips; falls back to the
+  // activity's generic tip for that choice).
+  // ------------------------------------------------------------------
+  var ACTIVITIES = [
+    {
+      key: "a1",
+      title: "Positive vs. Negative Reinforcement",
+      sub: "Is something added, removed, or is the behavior going down?",
+      ask: "What is happening to this behavior?",
+      options: ["Positive reinforcement", "Negative reinforcement", "Punishment"],
+      ref: [
+        ["Positive reinforcement", "Something is ADDED after the behavior, and the behavior INCREASES."],
+        ["Negative reinforcement", "Something unpleasant is REMOVED or avoided after the behavior, and the behavior INCREASES."],
+        ["Punishment", "A consequence after the behavior makes the behavior DECREASE."]
+      ],
+      generic: {
+        "Positive reinforcement": "Positive reinforcement means something is ADDED and the behavior goes UP. Did the behavior increase? Was something added, or did the student get away from something?",
+        "Negative reinforcement": "Negative reinforcement means something unpleasant is REMOVED or avoided and the behavior goes UP. Is the student escaping or avoiding anything here?",
+        "Punishment": "Punishment is defined by the behavior going DOWN. Check the scenario: did the behavior decrease, or did it increase?"
+      },
+      items: [
+        { id: "a1-1", grade: "Pre-K", text: "During circle time, 4-year-old Amara sits on her carpet square. Her teacher immediately gives her a thumbs-up and says, \"Amara, you found your spot!\" Over the next week, Amara gets to her carpet square faster and stays there longer.",
+          answer: "Positive reinforcement",
+          why: "Praise and a thumbs-up were added, and sitting on her spot increased.",
+          tips: { "Negative reinforcement": "Is Amara escaping anything? Something pleasant (praise) was added, not something unpleasant taken away." } },
+        { id: "a1-2", grade: "Grade 2", text: "Whenever the class starts a writing assignment, Deshawn crumples his paper and puts his head down. The paraprofessional usually says, \"Okay, you can just draw instead.\" Over the month, Deshawn crumples his paper more and more often when writing starts.",
+          answer: "Negative reinforcement",
+          why: "The writing demand is removed, and crumpling increased. This is escape, the most common function behind classroom refusal.",
+          tips: { "Positive reinforcement": "Drawing is offered, but the key change is that the hard writing task goes away. When a student gets OUT of something, think negative reinforcement.",
+                  "Punishment": "Deshawn might look like he is in trouble, but his crumpling went UP. Punishment always makes behavior go down." } },
+        { id: "a1-3", grade: "Grade 5", text: "Lily calls out answers during math. Her teacher starts taking away one minute of Lily's free time each time she calls out. Over two weeks, Lily's calling out drops from about 15 times a day to 3.",
+          answer: "Punishment",
+          why: "Free time is removed and calling out DECREASED. Removing something to decrease behavior is negative punishment, which we will study later.",
+          tips: { "Negative reinforcement": "Something was removed, but look at the behavior: it went DOWN. Negative reinforcement makes behavior go up. When removing something makes behavior go down, it is punishment.",
+                  "Positive reinforcement": "Nothing was added for Lily, and her calling out decreased." } },
+        { id: "a1-4", grade: "Grade 7", text: "Marco rarely turns in homework. His teacher starts sending a quick positive note home to Marco's grandmother on each day he turns it in. Marco's homework completion climbs from 1 day a week to 4.",
+          answer: "Positive reinforcement",
+          why: "A positive note home is added, and homework completion increased.",
+          tips: { "Negative reinforcement": "Is Marco getting away from anything unpleasant? The note home is something good being added." } },
+        { id: "a1-5", grade: "Kindergarten", text: "Noah covers his ears and screams during fire drills and loud assemblies. His teacher teaches him to hold out his hand and say \"headphones,\" and then gives him noise-canceling headphones. Noah now asks for his headphones before most loud events.",
+          answer: "Negative reinforcement",
+          why: "Headphones are handed over, but what really changes for Noah is that the painful noise is reduced. Asking gets him away from the noise, so asking increases.",
+          tips: { "Positive reinforcement": "The headphones are handed to him, but ask what they DO for Noah: they take away the loud noise. Focus on what the student gets away from.",
+                  "Punishment": "Noah's asking went UP. Punishment makes behavior go down." } },
+        { id: "a1-6", grade: "Grade 3", text: "Jayden pushes classmates in the lunch line. Each time he pushes, the lunch supervisor has him move to the back of the line. Over the next two weeks, Jayden's pushing in line decreases.",
+          answer: "Punishment",
+          why: "Losing his place in line followed pushing, and pushing DECREASED.",
+          tips: { "Negative reinforcement": "Jayden loses his place in line, but the pushing went DOWN. When behavior decreases, it is punishment, not reinforcement." } },
+        { id: "a1-7", grade: "Grade 6", text: "At the start of each class, Priya's teacher repeats, \"Priya, notebook out. Priya, notebook out,\" until Priya takes her notebook out, and then the reminders stop. By the end of the month, Priya takes her notebook out right away, before the reminders start.",
+          answer: "Negative reinforcement",
+          why: "Getting her notebook out ends (and later avoids) the nagging. Something unpleasant is removed, and the behavior increased.",
+          tips: { "Positive reinforcement": "Nothing is added for Priya. The nagging STOPS. Removing or avoiding something unpleasant is negative reinforcement.",
+                  "Punishment": "Priya's notebook behavior went UP, so this is reinforcement." } },
+        { id: "a1-8", grade: "Grade 1", text: "When Eli throws blocks at classmates, his teacher kneels down and talks with him for several minutes about why throwing is unsafe. Over the next few weeks, Eli's block throwing increases.",
+          answer: "Positive reinforcement",
+          why: "The teacher means it as a correction, but several minutes of one-on-one adult attention were added, and the throwing increased. Attention is a powerful reinforcer.",
+          tips: { "Punishment": "The teacher intends it as a consequence, but look at the data: throwing went UP. A consequence is only punishment if the behavior decreases.",
+                  "Negative reinforcement": "Nothing unpleasant is taken away from Eli. He GAINS several minutes of one-on-one attention." } }
+      ]
+    },
+    {
+      key: "a2",
+      title: "Schedules of Reinforcement",
+      sub: "Count, clock, or no requirement at all?",
+      ask: "Which schedule of reinforcement is this?",
+      options: ["Continuous (CRF)", "Fixed ratio (FR)", "Variable ratio (VR)", "Fixed interval (FI)", "Variable interval (VI)", "Non-contingent (NCR)"],
+      ref: [
+        ["Continuous (CRF)", "EVERY response is reinforced."],
+        ["Fixed ratio (FR)", "Reinforcement after a set, predictable NUMBER of responses (every 5th)."],
+        ["Variable ratio (VR)", "Reinforcement after an unpredictable NUMBER of responses, around an average."],
+        ["Fixed interval (FI)", "The first response after a set, predictable amount of TIME is reinforced."],
+        ["Variable interval (VI)", "The first response after an unpredictable amount of TIME is reinforced."],
+        ["Non-contingent (NCR)", "Reinforcement comes on a clock no matter what the student does. Nothing to earn."]
+      ],
+      generic: {
+        "Continuous (CRF)": "Continuous means EVERY single response is reinforced. Is every instance reinforced here?",
+        "Fixed ratio (FR)": "Fixed ratio is based on COUNTING responses, and the count is the same every time. Is there a predictable number of responses here?",
+        "Variable ratio (VR)": "Variable ratio is based on COUNTING responses, but the number changes. Is reinforcement tied to a number of responses, or to time?",
+        "Fixed interval (FI)": "Fixed interval is based on TIME, and the time is the same every time. Is there a predictable clock here?",
+        "Variable interval (VI)": "Variable interval is based on TIME, and the time changes. Is the timing unpredictable here?",
+        "Non-contingent (NCR)": "Non-contingent means the student does NOT have to do anything to get it. Does the student have to earn the reinforcer here?"
+      },
+      items: [
+        { id: "a2-1", grade: "Pre-K", text: "Ruby is learning to say \"help please\" instead of crying when she can't open her snack. Right now, every single time she says it, an adult helps her right away.",
+          answer: "Continuous (CRF)",
+          why: "Every response earns reinforcement. That is exactly right while Ruby is learning a brand new replacement behavior.",
+          tips: { "Fixed ratio (FR)": "Technically continuous is FR 1, but when EVERY response is reinforced we call it continuous reinforcement." } },
+        { id: "a2-2", grade: "Grade 3", text: "Diego earns one token for every 5 math problems he finishes. Four tokens trade in for 3 minutes of Lego time.",
+          answer: "Fixed ratio (FR)",
+          why: "Every 5th response earns a token. The count is set and predictable: FR 5.",
+          tips: { "Variable ratio (VR)": "Does the number ever change? Diego always needs exactly 5 problems.",
+                  "Continuous (CRF)": "Diego does not get a token after every problem, only after every 5th." } },
+        { id: "a2-3", grade: "Grade 5", text: "Ms. Patel hands out raffle tickets when she catches Andre following directions. Sometimes he gets one after 2 followed directions, sometimes after 6. On average it is about every 4.",
+          answer: "Variable ratio (VR)",
+          why: "Reinforcement depends on the number of responses, and that number changes around an average of 4: VR 4.",
+          tips: { "Fixed ratio (FR)": "The number changes (2, then 6). Fixed would mean the same number every time.",
+                  "Variable interval (VI)": "The rule is about how many directions Andre follows, not how much time has passed." } },
+        { id: "a2-4", grade: "Grade 2", text: "A timer beeps every 15 minutes. The first time after each beep that Kayla is sitting in her seat, she gets a check on her chart. Kayla now wanders most of the time and sits down right about when she expects the beep.",
+          answer: "Fixed interval (FI)",
+          why: "The first response after a set 15 minutes earns the check. Kayla's pattern (little behavior, then a burst near the beep) is the classic FI scallop.",
+          tips: { "Variable interval (VI)": "The beep comes every 15 minutes, every time. Predictable time means fixed.",
+                  "Fixed ratio (FR)": "The rule is about time passing, not how many times Kayla sits down." } },
+        { id: "a2-5", grade: "Grade 7", text: "Mr. Lee's phone vibrates silently at random times, about every 6 minutes on average. After each buzz, the first time he sees Tariq working quietly, Tariq earns a point.",
+          answer: "Variable interval (VI)",
+          why: "The first response after an unpredictable amount of time is reinforced. Because Tariq cannot predict the next check, he tends to work steadily.",
+          tips: { "Fixed interval (FI)": "The buzz times vary. They average 6 minutes, but they are not the same each time.",
+                  "Variable ratio (VR)": "The rule is based on time passing, not on how many things Tariq does." } },
+        { id: "a2-6", grade: "Grade 1", text: "Mason's FBA shows he shouts out to get adult attention. His para now gives him a quick high five and a friendly comment every 3 minutes, whether or not he has shouted.",
+          answer: "Non-contingent (NCR)",
+          why: "Attention arrives on a clock, and Mason does not have to do anything to get it. That lowers his need to shout for attention.",
+          tips: { "Fixed interval (FI)": "There is a 3-minute clock, but in FI the student must make a response after the time is up. Mason gets the high five no matter what he is doing.",
+                  "Continuous (CRF)": "Continuous reinforcement follows a behavior every time. Here, nothing is required at all." } },
+        { id: "a2-7", grade: "Kindergarten", text: "Isla whines for extra recess almost every day. Her teacher usually says no, but gives in about once every 4 or 5 times, and Isla never knows which time it will work. Her whining has become very hard to stop.",
+          answer: "Variable ratio (VR)",
+          why: "Whining pays off after an unpredictable number of tries. VR is the most resistant to extinction, which is why inconsistent giving in makes whining so stubborn.",
+          tips: { "Fixed ratio (FR)": "Isla cannot predict which whine will work. The number changes, so it is not fixed.",
+                  "Variable interval (VI)": "The payoff depends on how many times she whines, not how much time has passed." } },
+        { id: "a2-8", grade: "Grade 6", text: "Nia logs the books she reads. After every 10 books, she gets to pick a book from the prize shelf to keep.",
+          answer: "Fixed ratio (FR)",
+          why: "Every 10th book earns a prize. The count is set and predictable: FR 10.",
+          tips: { "Fixed interval (FI)": "It does not matter how long it takes Nia. The rule is about the number of books." } }
+      ]
+    },
+    {
+      key: "a3",
+      title: "Timing and Satiation",
+      sub: "When does the reinforcer arrive, and how much does the student want it right now?",
+      ask: "Which principle best explains what is happening?",
+      options: ["Immediate reinforcement", "Delayed reinforcement", "Satiation", "Deprivation"],
+      ref: [
+        ["Immediate reinforcement", "The reinforcer arrives within seconds of the behavior, making a strong link."],
+        ["Delayed reinforcement", "Time passes between the behavior and the reinforcer. The link weakens, and the wrong behavior can get reinforced."],
+        ["Satiation", "The student has had so much of a reinforcer recently that it has lost its power."],
+        ["Deprivation", "The student has gone without a reinforcer, which makes it MORE powerful."]
+      ],
+      generic: {
+        "Immediate reinforcement": "Immediate means the reinforcer arrives within seconds of the behavior. Is the timing the main point here, and was there a gap?",
+        "Delayed reinforcement": "Delayed means time passes between the behavior and the reinforcer. Is timing the issue here, or is it how much the student wants the reinforcer right now?",
+        "Satiation": "Satiation means the student has had a lot of a reinforcer recently, so it has lost its power. Has this student had plenty of it lately?",
+        "Deprivation": "Deprivation means the student has gone without a reinforcer, so it is extra powerful. Has this reinforcer been scarce for the student?"
+      },
+      items: [
+        { id: "a3-1", grade: "Pre-K", text: "At clean-up time, the moment Luca puts his toy truck on the shelf, his teacher says, \"You put the truck away!\" and gives him a high five. Within a few days, Luca starts cleaning up as soon as he hears the clean-up song.",
+          answer: "Immediate reinforcement",
+          why: "Praise arrived right as the behavior happened, and the behavior grew quickly.",
+          tips: { "Deprivation": "Nothing suggests Luca has gone without praise. The key detail is WHEN the praise arrived." } },
+        { id: "a3-2", grade: "Grade 1", text: "Ava's sticker chart for staying in her seat is checked once a day, at 3:00 dismissal. By then Ava is not sure what earned the sticker, and her in-seat behavior has not changed.",
+          answer: "Delayed reinforcement",
+          why: "Hours pass between the behavior and the sticker, so the link is too weak for a 6-year-old. Smaller, immediate check-ins would help.",
+          tips: { "Satiation": "Nothing suggests Ava is tired of stickers. The problem is WHEN the sticker arrives.",
+                  "Immediate reinforcement": "The sticker comes at 3:00, hours after the behavior." } },
+        { id: "a3-3", grade: "Kindergarten", text: "Mateo works hard for goldfish crackers during his 9:30 work session. At 12:45, right after lunch, the same goldfish crackers barely motivate him.",
+          answer: "Satiation",
+          why: "He just ate, so food has temporarily lost its power as a reinforcer.",
+          tips: { "Deprivation": "Mateo just ate lunch. That is the opposite of going without.",
+                  "Delayed reinforcement": "The crackers could arrive just as quickly in the afternoon. What changed is how full Mateo is." } },
+        { id: "a3-4", grade: "Grade 3", text: "Harper has not had any computer time all week because of assemblies and testing. On Friday, the promise of 5 minutes on the computer gets her to finish her entire worksheet.",
+          answer: "Deprivation",
+          why: "Going without computer time all week made it much more valuable to Harper.",
+          tips: { "Satiation": "Harper has had NO computer time all week. Satiation would mean she has had too much." } },
+        { id: "a3-5", grade: "Grade 2", text: "Jonah finally raises his hand quietly. His teacher is busy and does not call on him until two minutes later, right after he starts shouting, \"Ms. B! Ms. B!\" Over the next week, Jonah's shouting increases.",
+          answer: "Delayed reinforcement",
+          why: "The reinforcer (being called on) came two minutes after the hand raise, so it landed on the shouting instead. Delays let the wrong behavior get reinforced.",
+          tips: { "Immediate reinforcement": "Being called on came right after the shouting, but two minutes after the hand raise. That delay is the reason the wrong behavior got reinforced." } },
+        { id: "a3-6", grade: "Grade 6", text: "A sixth-grade class earns a movie party every Friday for good behavior. By November, students shrug when the party is announced, and behavior during the week has slipped.",
+          answer: "Satiation",
+          why: "The same reinforcer every single week has lost its power. Rotating a menu of reinforcers would help.",
+          tips: { "Deprivation": "The class has had a movie every week. That is plenty, not going without.",
+                  "Delayed reinforcement": "Friday is a delay, but it was the same delay in September when the party worked. What changed is how much students want it." } },
+        { id: "a3-7", grade: "Pre-K", text: "Sofia rarely gets to use a tablet at home. Two minutes on the class tablet is a powerful reward for her, while a classmate who plays on a tablet every evening barely cares about it.",
+          answer: "Deprivation",
+          why: "Because tablets are rare for Sofia, tablet time is extra powerful for her. Her classmate is closer to satiation.",
+          tips: { "Satiation": "For Sofia, tablets are rare. That is deprivation. Her classmate, who uses one every evening, is the one closer to satiation." } },
+        { id: "a3-8", grade: "Grade 7", text: "During independent work, Mr. Ortiz walks by and says, \"Nice, you started right away, Kai,\" the moment Kai opens his book. Over three weeks, Kai's time to get started drops from 8 minutes to 1.",
+          answer: "Immediate reinforcement",
+          why: "Specific praise arrived the moment the behavior happened, and getting started quickly increased.",
+          tips: { "Delayed reinforcement": "The praise came the moment Kai opened his book. There was no gap." } }
+      ]
+    },
+    {
+      key: "a4",
+      title: "Differential Reinforcement",
+      sub: "Replace it, eliminate it, reduce it, or teach an alternative?",
+      ask: "Which differential reinforcement procedure is this?",
+      options: ["DRA", "DRI", "DRO", "DRL"],
+      ref: [
+        ["DRA (Alternative)", "Reinforce a specific replacement behavior that meets the same need, like asking instead of grabbing. The student could physically do both."],
+        ["DRI (Incompatible)", "Reinforce a behavior that physically CANNOT happen at the same time as the problem behavior."],
+        ["DRO (Other)", "Reinforce the ABSENCE of the problem behavior for a set period of time. Goal: zero."],
+        ["DRL (Low rates)", "Reinforce the behavior when it happens at or below a set limit. Goal: less, not none."]
+      ],
+      generic: {
+        "DRA": "DRA reinforces a specific replacement skill that gets the student the same result (for example, asking instead of grabbing). Is a new skill being taught and reinforced here?",
+        "DRI": "DRI reinforces a behavior that physically CANNOT happen at the same time as the problem behavior. Could the student do both at once here?",
+        "DRO": "DRO reinforces a stretch of time with ZERO problem behavior. Is the student earning reinforcement for going a set period without the behavior?",
+        "DRL": "DRL reinforces the behavior happening LESS often, at or below a limit. Is the goal fewer, rather than none?"
+      },
+      items: [
+        { id: "a4-1", grade: "Pre-K", text: "Mia runs from the carpet toward the classroom door during transitions. Her teacher now praises her and lets her be the \"line helper\" each time she walks to the door holding the teacher's hand.",
+          answer: "DRI",
+          why: "Mia cannot hold the teacher's hand and run off at the same time. The reinforced behavior is physically incompatible with the problem behavior.",
+          tips: { "DRA": "Walking while holding hands is more than an alternative: Mia physically CANNOT do it and run to the door at the same time. That makes it incompatible." } },
+        { id: "a4-2", grade: "Grade 2", text: "Tyson spits at classmates about every 8 minutes. His teacher sets a 6-minute timer. Each time it goes off and he has not spit, he earns a sticker. If he spits, the timer starts over.",
+          answer: "DRO",
+          why: "Tyson earns reinforcement for set periods with zero spitting, with a reset when it happens. The interval starts shorter than his usual gap between behaviors.",
+          tips: { "DRL": "The goal here is zero spitting in each interval, not fewer. DRL is for behaviors that are fine in moderation.",
+                  "DRI": "No specific behavior is being taught or reinforced. Tyson earns the sticker for NOT spitting, whatever else he is doing." } },
+        { id: "a4-3", grade: "Grade 4", text: "Emma asks to use the restroom about 7 times a day, and the school nurse has ruled out a medical reason. Emma now gets 3 restroom passes each day. If she has any passes left at the end of the day, she earns a reward.",
+          answer: "DRL",
+          why: "Restroom trips are fine in moderation. Emma is reinforced for keeping them at or below a limit.",
+          tips: { "DRO": "The goal is not zero restroom trips. Emma can still use up to 3 passes. Fewer, not none, means DRL." } },
+        { id: "a4-4", grade: "Kindergarten", text: "Leo hits classmates when he wants the toy they are playing with. His teacher teaches him to say, \"My turn, please?\" and makes sure asking works: he gets a turn quickly every time he asks. Hitting no longer gets him the toy.",
+          answer: "DRA",
+          why: "Asking is a new skill that gets Leo the same result hitting used to get (the toy). That is DRA, paired with extinction for hitting.",
+          tips: { "DRI": "Could Leo say \"My turn, please?\" and hit at the same time? Physically, yes. So it is not incompatible. It is an alternative way to get the same result.",
+                  "DRO": "Leo is reinforced for DOING something specific (asking), not just for a stretch of time without hitting." } },
+        { id: "a4-5", grade: "Grade 6", text: "Aaliyah picks at the skin on her fingers during reading time. Her teacher gives her a squishy fidget to hold in both hands and quietly praises her while both hands are busy with it.",
+          answer: "DRI",
+          why: "With both hands on the fidget, Aaliyah physically cannot pick at her fingers. The fidget may also meet the same sensory need.",
+          tips: { "DRA": "Holding the fidget with both hands makes picking physically impossible at the same moment. When the two cannot happen together, it is DRI." } },
+        { id: "a4-6", grade: "Grade 7", text: "Jalen makes rude comments to one particular classmate. For each class period with zero rude comments toward that classmate, Jalen earns a point toward being the gym equipment helper.",
+          answer: "DRO",
+          why: "Jalen earns reinforcement for a set period (one class) with zero occurrences of the behavior.",
+          tips: { "DRL": "The goal is zero rude comments, not a few. Rude comments are not fine in moderation.",
+                  "DRA": "No specific replacement skill is being taught. Jalen earns points for the absence of rude comments." } },
+        { id: "a4-7", grade: "Grade 1", text: "Zoe gets up to sharpen her pencil about 12 times during the writing block. Her teacher tells her that if she sharpens 4 or fewer times, she gets to pick the class read-aloud book.",
+          answer: "DRL",
+          why: "Sharpening a pencil is fine sometimes. Zoe is reinforced for keeping it at or below a limit.",
+          tips: { "DRO": "Zoe can still sharpen up to 4 times. The goal is fewer, not none." } },
+        { id: "a4-8", grade: "Grade 3", text: "When math gets hard, Marcus throws his pencil and slides under his desk. His teacher teaches him to hand over a \"break card,\" and every time he uses it, he gets a 2-minute break. Throwing and hiding no longer get him out of work.",
+          answer: "DRA",
+          why: "The break card is a replacement behavior that gets Marcus the same result (escape from hard work) in an appropriate way.",
+          tips: { "DRI": "Marcus could physically hand over a card and throw a pencil. The card is an alternative that meets the same need (escape), not a physically incompatible behavior.",
+                  "DRO": "Marcus is reinforced for DOING something specific (using the card), not for a stretch of time without throwing." } }
+      ]
+    }
+  ];
+
+  // ------------------------------------------------------------------
+  // STATE (progress survives a reload when the browser allows storage)
+  // ------------------------------------------------------------------
+  var STORE_KEY = "tchg4030-reinforcement-lab-v1";
+  var solved = {};      // id -> true
+  var firstTry = {};    // id -> true if solved with no misses
+  var missed = {};      // id -> true if any miss this visit or earlier
+
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        solved = d.solved || {}; firstTry = d.firstTry || {}; missed = d.missed || {};
+      }
+    } catch (e) { /* storage blocked in some iframes; progress just won't persist */ }
+  }
+  function save() {
+    try { window.localStorage.setItem(STORE_KEY, JSON.stringify({ solved: solved, firstTry: firstTry, missed: missed })); } catch (e) {}
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+
+  function solvedCount(act) {
+    return act.items.filter(function (it) { return solved[it.id]; }).length;
+  }
+  function isDone(act) { return solvedCount(act) === act.items.length; }
+  function isUnlocked(i) { return i === 0 || isDone(ACTIVITIES[i - 1]); }
+
+  // ------------------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------------------
+  var root = document.getElementById("activities");
+  var chips = document.getElementById("chips");
+
+  function renderChips() {
+    chips.innerHTML = "";
+    ACTIVITIES.forEach(function (act, i) {
+      var done = isDone(act), open = isUnlocked(i);
+      var status = done ? "Complete" : (open ? solvedCount(act) + " of " + act.items.length + " correct" : "Locked");
+      var a = el("a", { href: "#" + act.key, class: "chip" + (done ? " done" : "") + (open ? "" : " locked") }, [
+        el("span", { class: "n", text: "Activity " + (i + 1) }),
+        el("span", { class: "t", text: act.title }),
+        el("span", { class: "st", text: (done ? "✓ " : (open ? "" : "🔒 ")) + status })
+      ]);
+      chips.appendChild(a);
+    });
+  }
+
+  function renderActivity(act, i) {
+    var sec = el("section", { class: "activity", id: act.key, "aria-labelledby": act.key + "-h" });
+
+    sec.appendChild(el("div", { class: "act-head" }, [
+      el("div", { class: "badge", "aria-hidden": "true", text: String(i + 1) }),
+      el("div", null, [
+        el("h2", { id: act.key + "-h", text: "Activity " + (i + 1) + ": " + act.title }),
+        el("div", { class: "sub", text: act.sub })
+      ])
+    ]));
+
+    var dl = el("dl");
+    act.ref.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
+    sec.appendChild(el("details", { class: "ref" }, [el("summary", { text: "Quick reference" }), dl]));
+
+    var bar = el("i");
+    var count = el("span", { class: "count", "aria-live": "polite" });
+    sec.appendChild(el("div", { class: "progress" }, [
+      el("div", { class: "bar", role: "progressbar", "aria-label": "Activity " + (i + 1) + " progress", "aria-valuemin": "0", "aria-valuemax": String(act.items.length) }, [bar]),
+      count
+    ]));
+
+    sec.appendChild(el("div", { class: "lock", role: "note" }, [
+      el("span", { "aria-hidden": "true", text: "🔒" }),
+      el("span", { text: "Finish Activity " + i + " with all 8 correct to unlock this activity." })
+    ]));
+
+    var list = el("div", { class: "items" });
+    shuffle(act.items).forEach(function (it, idx) { list.appendChild(renderItem(act, it, idx)); });
+    sec.appendChild(list);
+
+    var next = ACTIVITIES[i + 1];
+    var stat = el("span", { class: "stat" });
+    var banner = el("div", { class: "done-banner", role: "status" }, [
+      el("div", null, [el("b", { text: "Activity " + (i + 1) + " complete: 8 of 8 correct" }), stat]),
+      next ? el("a", { class: "btn", href: "#" + next.key, text: "Go to Activity " + (i + 2) }) : el("a", { class: "btn", href: "#finale", text: "See your results" })
+    ]);
+    sec.appendChild(banner);
+
+    act._ui = { sec: sec, bar: bar, count: count, list: list, stat: stat };
+    return sec;
+  }
+
+  function renderItem(act, it, idx) {
+    var qid = it.id;
+    var card = el("article", { class: "q", id: "q-" + qid, "aria-labelledby": qid + "-lbl" });
+    card.appendChild(el("div", { class: "meta" }, [
+      el("span", { class: "num", id: qid + "-lbl", text: "Scenario " + (idx + 1) }),
+      el("span", { class: "grade", text: it.grade })
+    ]));
+    card.appendChild(el("p", { class: "scenario", id: qid + "-txt", text: it.text }));
+    card.appendChild(el("p", { class: "ask", id: qid + "-ask", text: it.ask || act.ask }));
+
+    var opts = el("div", { class: "opts", role: "group", "aria-labelledby": qid + "-ask", "aria-describedby": qid + "-txt" });
+    var fb = el("div", { class: "fb", id: qid + "-fb", "aria-live": "polite" });
+
+    shuffle(act.options).forEach(function (opt) {
+      var b = el("button", { type: "button", class: "opt", "data-opt": opt, text: opt });
+      b.addEventListener("click", function () { choose(act, it, card, opt, b, fb); });
+      opts.appendChild(b);
+    });
+    card.appendChild(opts);
+    card.appendChild(fb);
+
+    if (solved[qid]) markSolved(card, it, fb);
+    return card;
+  }
+
+  function markSolved(card, it, fb) {
+    card.classList.add("solved");
+    Array.prototype.forEach.call(card.querySelectorAll(".opt"), function (b) {
+      if (b.getAttribute("data-opt") === it.answer) { b.classList.add("right"); b.setAttribute("aria-pressed", "true"); }
+      b.setAttribute("aria-disabled", "true");
+    });
+    fb.className = "fb good";
+    fb.innerHTML = "";
+    fb.appendChild(el("strong", { text: "Correct: " + it.answer }));
+    fb.appendChild(document.createTextNode(it.why));
+  }
+
+  function choose(act, it, card, opt, btn, fb) {
+    if (solved[it.id]) return;
+    if (opt === it.answer) {
+      solved[it.id] = true;
+      if (!missed[it.id]) firstTry[it.id] = true;
+      save();
+      markSolved(card, it, fb);
+      update();
+    } else {
+      missed[it.id] = true;
+      save();
+      btn.classList.add("wrong");
+      var tip = (it.tips && it.tips[opt]) || act.generic[opt];
+      fb.className = "fb bad";
+      fb.innerHTML = "";
+      fb.appendChild(el("strong", { text: "Not quite. It is not " + opt + "." }));
+      fb.appendChild(document.createTextNode(tip + " Try again."));
+    }
+  }
+
+  function update() {
+    ACTIVITIES.forEach(function (act, i) {
+      var ui = act._ui, n = solvedCount(act), total = act.items.length;
+      ui.bar.style.width = (100 * n / total) + "%";
+      ui.bar.parentNode.setAttribute("aria-valuenow", String(n));
+      ui.count.textContent = n + " of " + total + " correct";
+      var open = isUnlocked(i);
+      ui.sec.classList.toggle("is-locked", !open);
+      if (open) ui.list.removeAttribute("inert"); else ui.list.setAttribute("inert", "");
+      var done = isDone(act);
+      ui.sec.classList.toggle("is-done", done);
+      if (done) {
+        var ft = act.items.filter(function (it) { return firstTry[it.id]; }).length;
+        ui.stat.textContent = "Correct on the first try: " + ft + " of " + total + ".";
+      }
+    });
+    renderChips();
+    var all = ACTIVITIES.every(isDone);
+    var fin = document.getElementById("finale");
+    fin.classList.toggle("all-done", all);
+    document.getElementById("finale-h").textContent = all ? "All four activities complete" : "Finish all four activities";
+    var doneCount = ACTIVITIES.filter(isDone).length;
+    document.getElementById("finale-p").textContent = all
+      ? "Nice work. You identified all 32 scenarios correctly. Think about which of these patterns you have seen in your field placement."
+      : doneCount + " of 4 activities complete. Your progress is shown at the top of the page.";
+  }
+
+  document.getElementById("reset").addEventListener("click", function () {
+    solved = {}; firstTry = {}; missed = {};
+    save();
+    build();
+    window.scrollTo(0, 0);
+  });
+
+  function build() {
+    root.innerHTML = "";
+    ACTIVITIES.forEach(function (act, i) { root.appendChild(renderActivity(act, i)); });
+    update();
+  }
+
+  load();
+  build();
+})();
+</script>
+</body>
+</html>
